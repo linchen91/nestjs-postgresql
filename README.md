@@ -154,13 +154,46 @@ All endpoints except those marked `@Public()` require a valid JWT token.
 
 ### Devices
 
-| Method | Path         | Description                            | Auth |
-| ------ | ------------ | -------------------------------------- | ---- |
-| POST   | `/devices`   | Create a new device                    | Yes  |
-| GET    | `/devices`   | List all devices                       | Yes  |
-| GET    | `/devices/:id` | Get a device by id                  | Yes  |
-| PATCH  | `/devices/:id` | Update a device                     | Yes  |
-| DELETE | `/devices/:id` | Delete a device                     | Yes  |
+| Method | Path         | Description                                         | Auth |
+| ------ | ------------ | --------------------------------------------------- | ---- |
+| POST   | `/devices`   | Create a new device                                 | Yes  |
+| GET    | `/devices`   | List devices (paginated, searchable, filterable)    | Yes  |
+| GET    | `/devices/:id` | Get a device by id                               | Yes  |
+| PATCH  | `/devices/:id` | Update a device                                  | Yes  |
+| DELETE | `/devices/:id` | Delete a device                                  | Yes  |
+
+#### GET /devices query parameters
+
+| Parameter  | Type   | Default | Description                                                  |
+| ---------- | ------ | ------- | ------------------------------------------------------------ |
+| `page`     | number | 1       | Page number (minimum 1)                                      |
+| `pageSize` | number | 20      | Items per page (1–200)                                       |
+| `sort`     | string | `id`    | Sort field: `id`, `code`, or `name`                          |
+| `order`    | string | `ASC`   | Sort direction: `ASC` or `DESC`                              |
+| `q`        | string | —       | General search term (searches `code` and `name`)             |
+| `code`     | string | —       | Search by device code                                        |
+| `name`     | string | —       | Search by device name                                        |
+| `status`   | string | —       | Filter by device status                                      |
+| `isactive` | string | —       | Filter by active flag                                        |
+| `devicetype`| string | —      | Filter by device type                                        |
+
+**Example:**
+
+```
+GET /devices?page=1&pageSize=10&sort=name&order=ASC&status=active
+```
+
+**Response:**
+
+```json
+{
+  "rows": [{ "id": 1, "code": "cctv-n1", "name": "autobahn", ... }],
+  "total": 1,
+  "page": 1,
+  "pageSize": 10,
+  "totalPages": 1
+}
+```
 
 #### Device fields
 
@@ -247,6 +280,13 @@ devices/
   device.entity.ts    # "devices" table entity
   device.controller.ts # CRUD endpoints (/devices)
   device.service.ts   # Device business logic
+common/
+  paging/
+    page.module.ts    # Global paging module (auto-available everywhere)
+    page.service.ts   # PagingService — search, filter, sort orchestration
+    page.decorator.ts # @Page() param decorator (parses query string)
+    paginate.ts       # Core pagination logic (TypeORM QueryBuilder)
+    api-page-queries.ts # Swagger decorator for paging query params
 roles/
   role.module.ts      # Roles feature module
   role.entity.ts      # "roles" table entity (ManyToMany with Device)
