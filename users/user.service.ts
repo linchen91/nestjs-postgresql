@@ -1,43 +1,57 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { User } from './user.entity';
+import { UsersRepository } from './user.repository';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectRepository(User)
-    private readonly repo: Repository<User>,
-  ) {}
+  constructor(private readonly repo: UsersRepository) {}
 
-  create(body: Partial<User>) {
-    const u = this.repo.create(body);
-    return this.repo.save(u);
+  async create(body: CreateUserDto) {
+    const hashedPwd = await bcrypt.hash(body.pwd, 10);
+    const data: Partial<User> = {
+      ...body,
+      pwd: hashedPwd,
+    };
+    return this.repo.create(data);
   }
 
-  findAll() {
-    return this.repo.find({ order: { id: 'ASC' } });
+  async findAll(): Promise<User[]> {
+    return this.repo.findAll();
   }
 
-  async findOne(id: number) {
-    const u = await this.repo.findOne({ where: { id } });
+  async findOne(id: number): Promise <User> {
+    const u = await this.repo.findById(id);
     if (!u) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
     return u;
   }
 
-  async update(id: number, body: Partial<User>) {
-    const u = await this.repo.findOne({ where: { id } });
-    if (!u) {
+  async update(id: number, body: UpdateUserDto): Promise<User> {
+    const exists = await this.repo.findById(id);
+    if (!exists) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
-    await this.repo.update({ id }, body);
-    return this.repo.findOne({ where: { id } });
+
+    const data: Partial<User> = {
+      ...exists,
+      ...body,
+    };
+
+    if (body.pwd) {
+      data.pwd = await bcrypt.hash(body.pwd, 10);
+    }
+    return this.repo.update(id, data);
   }
 
-  async remove(id: number) {
-    await this.repo.delete({ id });
-    return { message: `User with id ${id} has been deleted` };
+  async remove(id: number): Promise<{ success: true }> {
+    const exists = await this.repo.findById(id);
+    if (!exists) throw new NotFoundException('User not found');
+
+    await this.repo.remove(id);
+    return { success: true };
   }
 }
