@@ -2,21 +2,32 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Device } from './device.entity';
+import { PagingService } from '../common/paging/page.service';
 
 @Injectable()
 export class DeviceService {
   constructor(
     @InjectRepository(Device)
     private readonly repo: Repository<Device>,
-  ) {}
+    private readonly paging: PagingService) {}
 
   create(body: Partial<Device>) {
     const d = this.repo.create(body);
     return this.repo.save(d);
   }
 
-  findAll() {
-    return this.repo.find({ order: { id: 'ASC' } });
+  findAll(query: any) {
+    return this.paging.run(this.repo, query, {
+      alias: 'd',
+      search: ['code', 'name'],
+      searchByParam: {
+        code: ['code'],
+        name: ['name'],
+      },
+      filters: ['status', 'siactive', 'devicetype'],
+      sort: ['id', 'code', 'name'],
+      defaultSort: { field: 'id', order: 'ASC' },
+    });
   }
 
   async findOne(id: number) {

@@ -14,6 +14,7 @@ import { DevicesModule } from '../devices/device.module';
 import { Device } from '../devices/device.entity';
 import { RolesModule } from '../roles/role.module';
 import { Role } from '../roles/role.entity';
+import { PagingModule } from '../common/paging/page.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { Role } from '../roles/role.entity';
       }),
       inject: [ConfigService],
     }),
+    PagingModule,
     AuthModule,
     UsersModule,
     TestModule,
