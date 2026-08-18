@@ -6,15 +6,21 @@ import {
   Param,
   Patch,
   Delete,
+  UseInterceptors,
+  Inject
 } from '@nestjs/common';
 import { DeviceService } from './device.service';
 import { ApiBody } from '@nestjs/swagger';
 import { Page } from '../common/paging/page.decorator';
 import { ApiPagingQueries } from '../common/paging/api-page-queries';
+import { CacheInterceptor, CacheTTL, CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Controller('devices')
 export class DeviceController {
-  constructor(private readonly service: DeviceService) {}
+  constructor(private readonly service: DeviceService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache
+  ) {}
 
   @Post()
   @ApiBody({
@@ -53,7 +59,9 @@ export class DeviceController {
     },
   })
   update(@Param('id') id: string, @Body() body: any) {
-    return this.service.update(+id, body);
+    const result = this.service.update(+id, body);
+    this.cache.clear();
+    return result;
   }
 
   @ApiPagingQueries({
@@ -69,6 +77,8 @@ export class DeviceController {
     ],   
   })
   @Get()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60*1000)
   findAll(@Page() query: any) {
     return this.service.findAll(query);
   }

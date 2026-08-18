@@ -10,6 +10,8 @@ A [NestJS](https://nestjs.com/) 11 backend service with PostgreSQL (TypeORM), JW
 - [@nestjs/swagger](https://docs.nestjs.com/openapi/introduction) — OpenAPI documentation at `/docs`
 - [@nestjs/jwt](https://docs.nestjs.com/security/authentication) + [@nestjs/passport](https://docs.nestjs.com/security/authentication) — JWT-based authentication with Passport
 - [bcrypt](https://www.npmjs.com/package/bcrypt) — password hashing
+- [nest-winston](https://github.com/golevelup/nestjs-winston) + [winston](https://github.com/winstonjs/winston) — structured logging with daily rotation
+- [@nestjs/cache-manager](https://docs.nestjs.com/techniques/caching) — in-memory caching with configurable TTL
 
 ## Prerequisites
 
@@ -37,6 +39,24 @@ JWT_SECRET=your-secret-key-here
 ```
 
 All variables are optional — sensible defaults are applied for the database connection; the server listens on port `3000` unless `PORT` is set. **`JWT_SECRET` is required for authentication** — the app will fail to sign/verify tokens without it.
+
+### Logging
+
+The application uses [Winston](https://github.com/winstonjs/winston) via [nest-winston](https://github.com/golevelup/nestjs-winston) for structured logging:
+
+- **Console** — colorized, human-readable output during development
+- **Daily rotation** — JSON-formatted log files in `logs/` directory
+  - `app-YYYY-MM-DD.log` (info level, retained for 15 days)
+  - `app-YYYY-MM-DD.log` (error level, retained for 30 days)
+- **HTTP interceptor** — logs every incoming request and response with method, URL, status code, and execution time
+
+### Caching
+
+In-memory caching is enabled globally via `@nestjs/cache-manager`:
+
+- **Global TTL:** 5 minutes (300 seconds)
+- **Max entries:** 1000
+- **Devices endpoint:** `GET /devices` uses a 60-second cache TTL via `CacheInterceptor`
 
 ### Database tables
 
@@ -257,8 +277,8 @@ $ npm run format
 
 ```
 src/
-  main.ts             # Bootstrap + Swagger setup
-  app.module.ts       # Root module (Config, TypeORM, Auth, Users, Devices, Roles, Test)
+  main.ts             # Bootstrap + Swagger + Winston logger setup
+  app.module.ts       # Root module (Config, TypeORM, Cache, Auth, Users, Devices, Roles, Test)
   app.controller.ts   # GET /
   app.service.ts
   hello.controller.ts # GET /api/hello
@@ -275,12 +295,14 @@ users/
   user.entity.ts      # "users" table entity
   user.controller.ts  # CRUD endpoints (/users)
   user.service.ts     # User business logic
+  user.repository.ts  # Repository layer for database operations
 devices/
   device.module.ts    # Devices feature module
   device.entity.ts    # "devices" table entity
-  device.controller.ts # CRUD endpoints (/devices)
+  device.controller.ts # CRUD endpoints (/devices) with caching
   device.service.ts   # Device business logic
 common/
+  logging.interceptor.ts # HTTP request/response logging interceptor
   paging/
     page.module.ts    # Global paging module (auto-available everywhere)
     page.service.ts   # PagingService — search, filter, sort orchestration

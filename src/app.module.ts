@@ -15,6 +15,7 @@ import { Device } from '../devices/device.entity';
 import { RolesModule } from '../roles/role.module';
 import { Role } from '../roles/role.entity';
 import { PagingModule } from '../common/paging/page.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -34,6 +35,12 @@ import { PagingModule } from '../common/paging/page.module';
         logging: true,
       }),
       inject: [ConfigService],
+    }),
+
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 300 * 1000,
+      max: 1000,
     }),
     PagingModule,
     AuthModule,
